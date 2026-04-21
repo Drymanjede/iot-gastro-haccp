@@ -122,6 +122,45 @@ def receive_data(data: Measurement):
     return {"status": "ok", "alert": alert}
 
 # ========================
+import secrets
+
+class RegisterRequest(BaseModel):
+    device_id: str
+    temperature_limit: float = 8.0
+
+
+@app.post("/api/register")
+def register_device(data: RegisterRequest):
+    db = SessionLocal()
+
+    device = db.query(Device).filter(Device.device_uid == data.device_id).first()
+
+    if device:
+        db.close()
+        return {
+            "device_id": device.device_uid,
+            "api_key": device.api_key,
+            "limit": device.temperature_limit,
+            "status": "already_exists"
+        }
+
+    new_device = Device(
+        device_uid=data.device_id,
+        temperature_limit=data.temperature_limit,
+        api_key=secrets.token_hex(16)
+    )
+
+    db.add(new_device)
+    db.commit()
+    db.refresh(new_device)
+    db.close()
+
+    return {
+        "device_id": new_device.device_uid,
+        "api_key": new_device.api_key,
+        "limit": new_device.temperature_limit,
+        "status": "created"
+    }
 # DATA
 # ========================
 @app.get("/api/data/{device_uid}")
@@ -152,20 +191,17 @@ user_id = Column(Integer, ForeignKey("users.id"))
 @app.get("/api/devices_list")
 def devices_list():
     db = SessionLocal()
-    devices = db.query(Device.device_uid).all()
-    db.close()
-    return [d[0] for d in devices]
-
-@app.get("/api/device/{device_uid}")
-def get_device(device_uid: str):
-    db = SessionLocal()
-    device = db.query(Device).filter(Device.device_uid == device_uid).first()
+    devices = db.query(Device).all()
     db.close()
 
-    if not device:
-        return {"limit": 8}
-
-    return {"limit": device.temperature_limit}
+    return [
+        {
+            "id": d.device_uid,
+            "limit": d.temperature_limit,
+            "api_key": d.api_key
+        }
+        for d in devices
+    ]
 
 # ========================
 # PDF REPORT
@@ -536,6 +572,116 @@ setInterval(()=>{
 # ========================
 # ROOT
 # ========================
+from fastapi.responses import HTMLResponse
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_panel():
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IoT Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; background:#0b1220; color:white; padding:20px; }
+        input, button { padding:10px; margin:5px; width:100%; }
+        .card { background:#111a2e; padding:15px; margin:10px 0; border-radius:10px; }
+        button { background:#2563eb; color:white; border:none; border-radius:8px; }
+    </style>
+</head>
+<body>
+
+<h2>📡 IoT Admin Panel</h2>
+
+<div class="card">
+    <h3>➕ Přidat zařízení</h3>
+    <input id="device" placeholder="device_id">
+    <input id="limit" placeholder="temperature limit" value="8">
+    <button onclick="addDevice()">Přidat</button>
+</div>
+
+<div class="card">
+    <h3>📋 Zařízení</h3>
+    <div id="list"></div>
+</div>
+
+<script>
+
+async function loadDevices(){
+    let res = await fetch('/api/devices_list');
+    let data = await res.json();
+
+    let html = "";
+    data.forEach(d=>{
+        html += "<div>📟 " + d + "</div>";
+    });
+
+    document.getElementById("list").innerHTML = html;
+}
+
+async function addDevice(){
+    let id = document.getElementById("device").value;
+    let limit = document.getElementById("limit").value;
+
+    let res = await fetch("/api/register", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+            device_id: id,
+            temperature_limit: parseFloat(limit)
+        })
+    });
+
+    let data = await res.json();
+    alert("API KEY: " + data.api_key);
+
+    loadDevices();
+}
+
+loadDevices();
+
+</script>
+
+</body>
+</html>
+"""
+#===============================================
+import secrets
+
+class RegisterRequest(BaseModel):
+    device_id: str
+    temperature_limit: float = 8.0
+
+@app.post("/api/register")
+def register_device(data: RegisterRequest):
+    db = SessionLocal()
+
+    # kontrola existence
+    existing = db.query(Device).filter(Device.device_uid == data.device_id).first()
+    if existing:
+        db.close()
+        return {
+            "error": "device already exists",
+            "api_key": existing.api_key
+        }
+
+    # vytvoření nového zařízení
+    new_device = Device(
+        device_uid=data.device_id,
+        temperature_limit=data.temperature_limit,
+        api_key=secrets.token_hex(16)
+    )
+
+    db.add(new_device)
+    db.commit()
+    db.refresh(new_device)
+    db.close()
+
+    return {
+        "device_id": new_device.device_uid,
+        "api_key": new_device.api_key
+    }
+    #=================================================================
 @app.get("/")
 def root():
     return {"message": "Server běží 🚀"}
