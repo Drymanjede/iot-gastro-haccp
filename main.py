@@ -15,6 +15,13 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 app = FastAPI()
 #-------------------------------------------------------------------------------------------------------------------
+from fastapi import Request, Form
+from fastapi.responses import RedirectResponse
+
+SECRET_USER = "admin"
+SECRET_PASS = "1234"
+
+sessions = set()
 
 @app.post("/auth/login")
 def login():
@@ -202,7 +209,49 @@ def devices_list():
         }
         for d in devices
     ]
+#---------------
+@app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
+def device_detail(device_uid: str):
+    db = SessionLocal()
 
+    device = db.query(Device).filter(Device.device_uid == device_uid).first()
+    if not device:
+        db.close()
+        return "Device not found"
+
+    data = db.query(MeasurementDB)\
+        .filter(MeasurementDB.device_id == device.id)\
+        .order_by(MeasurementDB.created_at.desc())\
+        .limit(50)\
+        .all()
+
+    db.close()
+
+    rows = ""
+    for d in data:
+        rows += f"<tr><td>{d.created_at}</td><td>{d.temperature}</td></tr>"
+
+    return f"""
+    <html>
+    <body style="font-family:Arial;background:#0b1220;color:white;padding:20px">
+
+    <h2>📟 Device: {device.device_uid}</h2>
+    <p>Limit: {device.temperature_limit} °C</p>
+    <p>API KEY: {device.api_key}</p>
+
+    <h3>📊 Poslední měření</h3>
+
+    <table border="1" style="color:white;width:100%">
+        <tr><th>Time</th><th>Temp</th></tr>
+        {rows}
+    </table>
+
+    <br>
+    <a href="/admin" style="color:#3b82f6">← zpět</a>
+
+    </body>
+    </html>
+    """
 # ========================
 # PDF REPORT
 # ========================
@@ -573,10 +622,34 @@ setInterval(()=>{
 # ROOT
 # ========================
 from fastapi.responses import HTMLResponse
+@app.get("/login", response_class=HTMLResponse)
+def login_page():
+    return """
+    <html>
+    <body style="font-family:Arial;background:#0b1220;color:white;padding:20px">
+        <h2>🔐 Login</h2>
 
+        <form method="post" action="/login">
+            <input name="user" placeholder="user"><br><br>
+            <input name="password" type="password" placeholder="password"><br><br>
+            <button type="submit">Login</button>
+        </form>
+    </body>
+    </html>
+    """
+@app.post("/login")
+def login(user: str = Form(...), password: str = Form(...)):
+    if user == SECRET_USER and password == SECRET_PASS:
+        sessions.add(user)
+        return RedirectResponse("/admin", status_code=302)
+
+    return {"error": "wrong credentials"}
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel():
-    return """
+    if "admin" not in sessions:
+        return RedirectResponse("/login")
+    return
+    """
 <!DOCTYPE html>
 <html>
 <head>
@@ -613,7 +686,9 @@ async function loadDevices(){
 
     let html = "";
     data.forEach(d=>{
-        html += "<div>📟 " + d + "</div>";
+        html += `<div>
+    📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">${d.id}</a>
+</div>`;
     });
 
     document.getElementById("list").innerHTML = html;
