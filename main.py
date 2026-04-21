@@ -648,7 +648,7 @@ def login(user: str = Form(...), password: str = Form(...)):
 def admin_panel():
     if "admin" not in sessions:
         return RedirectResponse("/login")
-    return
+    
     """
 <!DOCTYPE html>
 <html>

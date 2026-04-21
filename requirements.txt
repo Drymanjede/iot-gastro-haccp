@@ -2,5 +2,6 @@ fastapi
 uvicorn
 sqlalchemy
 pydantic
-reportlab
+python-multipart
 matplotlib
+reportlab
