@@ -721,6 +721,41 @@ loadDevices();
 </html>
 """
 #===============================================
+@app.post("/api/register")
+def register(data: dict):
+    db = SessionLocal()
+
+    import secrets
+
+    device = Device(
+        device_uid=data["device_id"],
+        temperature_limit=data.get("temperature_limit", 8.0),
+        api_key=secrets.token_hex(16)
+    )
+
+    db.add(device)
+    db.commit()
+    db.refresh(device)
+
+    db.close()
+
+    return {"api_key": device.api_key}
+#======================================
+@app.get("/api/debug/device/{device_uid}")
+def debug_device(device_uid: str):
+    db = SessionLocal()
+
+    device = db.query(Device).filter(Device.device_uid == device_uid).first()
+
+    if not device:
+        return {"error": "not found"}
+
+    return {
+        "device_id": device.device_uid,
+        "api_key": device.api_key,
+        "limit": device.temperature_limit
+    }
+    #==================
 import secrets
 
 class RegisterRequest(BaseModel):
