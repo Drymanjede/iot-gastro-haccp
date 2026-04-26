@@ -198,17 +198,10 @@ user_id = Column(Integer, ForeignKey("users.id"))
 @app.get("/api/devices_list")
 def devices_list():
     db = SessionLocal()
-    devices = db.query(Device).all()
+    devices = db.query(Device.device_uid).all()
     db.close()
 
-    return [
-        {
-            "id": d.device_uid,
-            "limit": d.temperature_limit,
-            "api_key": d.api_key
-        }
-        for d in devices
-    ]
+    return [d[0] for d in devices]
 #---------------
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
 def device_detail(device_uid: str):
@@ -721,25 +714,7 @@ loadDevices();
 </html>
 """
 #===============================================
-@app.post("/api/register")
-def register(data: dict):
-    db = SessionLocal()
 
-    import secrets
-
-    device = Device(
-        device_uid=data["device_id"],
-        temperature_limit=data.get("temperature_limit", 8.0),
-        api_key=secrets.token_hex(16)
-    )
-
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-
-    db.close()
-
-    return {"api_key": device.api_key}
 #======================================
 @app.get("/api/debug/device/{device_uid}")
 def debug_device(device_uid: str):
@@ -756,23 +731,7 @@ def debug_device(device_uid: str):
         "limit": device.temperature_limit
     }
     #==================
-@app.post("/api/register")
-def register(data: dict):
-    db = SessionLocal()
-    import secrets
 
-    device = Device(
-        device_uid=data["device_id"],
-        temperature_limit=data.get("temperature_limit", 8.0),
-        api_key=secrets.token_hex(16)
-    )
-
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-    db.close()
-
-    return {"api_key": device.api_key}
 #====================================
 import secrets
 
