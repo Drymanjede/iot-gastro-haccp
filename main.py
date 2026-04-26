@@ -738,7 +738,18 @@ import secrets
 class RegisterRequest(BaseModel):
     device_id: str
     temperature_limit: float = 8.0
+#======================================================
+@app.get("/api/clear-all")
+def clear_all():
+    db = SessionLocal()
 
+    deleted = db.query(MeasurementDB).delete()
+
+    db.commit()
+    db.close()
+
+    return {"deleted_records": deleted}
+#========================================================
 @app.post("/api/register")
 def register_device(data: RegisterRequest):
     db = SessionLocal()
