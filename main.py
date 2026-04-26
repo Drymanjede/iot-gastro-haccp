@@ -756,6 +756,24 @@ def debug_device(device_uid: str):
         "limit": device.temperature_limit
     }
     #==================
+@app.post("/api/register")
+def register(data: dict):
+    db = SessionLocal()
+    import secrets
+
+    device = Device(
+        device_uid=data["device_id"],
+        temperature_limit=data.get("temperature_limit", 8.0),
+        api_key=secrets.token_hex(16)
+    )
+
+    db.add(device)
+    db.commit()
+    db.refresh(device)
+    db.close()
+
+    return {"api_key": device.api_key}
+#====================================
 import secrets
 
 class RegisterRequest(BaseModel):
