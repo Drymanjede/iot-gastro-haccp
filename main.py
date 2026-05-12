@@ -543,15 +543,23 @@ async function loadDevices(){
     let sel = document.getElementById('deviceSelect');
     sel.innerHTML="";
 
-    devices.forEach(d=>{
-        let o=document.createElement("option");
-        o.value=d;
-        o.text=d;
-        sel.appendChild(o);
+   devices.forEach(d=>{
+
+    let status = d.online
+        ? "🟢"
+        : "🔴";
+
+    let o = document.createElement("option");
+
+    o.value = d.id;
+    o.text = status + " " + d.id;
+
+    sel.appendChild(o);
     });
 
-    if(devices.length) loadData(devices[0]);
-}
+    if(devices.length) {
+    loadData(devices[0].id);
+    }
 
 async function loadData(dev){
 
