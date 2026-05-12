@@ -84,7 +84,8 @@ class Measurement(BaseModel):
 @app.post("/api/measurements")
 def receive_data(data: Measurement):
     db = SessionLocal()
-
+    print("DEVICE:", device)
+    print("DATA:", data)
     device = db.query(Device).filter(Device.device_uid == data.device_id).first()
 
     if not device:
@@ -96,7 +97,9 @@ def receive_data(data: Measurement):
         db.add(device)
         db.commit()
         db.refresh(device)
-
+        db.add(measurement)
+        
+        print("SAVED")
         print("NEW DEVICE:", device.device_uid)
         print("API KEY:", device.api_key)
 
@@ -419,7 +422,7 @@ def report(device_uid: str):
             "Content-Disposition": f"attachment; filename=HACCP_{device_uid}.pdf"
         }
     )
-
+   
 # ========================
 # DASHBOARD (MOBILE)
 # ========================
@@ -562,24 +565,20 @@ async function loadDevices(){
     let sel = document.getElementById('deviceSelect');
     sel.innerHTML="";
 
-   devices.forEach(d=>{
-
-    let status = d.online
-        ? "🟢"
-        : "🔴";
-
-    let o = document.createElement("option");
-
-    o.value = d.id;
-    o.text = status + " " + d.id;
-
+  devices.forEach(d=>{
+    let o=document.createElement("option");
+    o.value=d.id;
+    o.text=d.id;
     sel.appendChild(o);
     });
 
     if(devices.length) {
     loadData(devices[0].id);
     }
-
+    if (!devices || devices.length === 0) {
+    document.getElementById("deviceSelect").innerHTML = "<option>no devices</option>";
+    return;
+}
 async function loadData(dev){
 
     let res = await fetch('/api/data/' + dev);
