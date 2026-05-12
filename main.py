@@ -792,16 +792,23 @@ loadDevices();
 def debug_device(device_uid: str):
     db = SessionLocal()
 
-    device = db.query(Device).filter(Device.device_uid == device_uid).first()
+    device = db.query(Device).filter(
+        Device.device_uid == device_uid
+    ).first()
 
     if not device:
+        db.close()
         return {"error": "not found"}
 
-    return {
+    result = {
         "device_id": device.device_uid,
         "api_key": device.api_key,
         "limit": device.temperature_limit
     }
+
+    db.close()
+
+    return result
     #==================
 
 #====================================
