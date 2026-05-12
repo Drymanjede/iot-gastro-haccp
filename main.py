@@ -54,9 +54,9 @@ class Device(Base):
     alert_delay_minutes = Column(Integer, default=10)
     api_key = Column(String, unique=True)
     alert_active_since = Column(DateTime, nullable=True)
-
+    last_seen = Column(DateTime, nullable=True)
     measurements = relationship("MeasurementDB", back_populates="device")
-
+    
 
 class MeasurementDB(Base):
     __tablename__ = "measurements"
@@ -109,7 +109,7 @@ def receive_data(data: Measurement):
         device_id=device.id
     )
     db.add(measurement)
-
+    device.last_seen = datetime.utcnow()
     alert = False
 
     if data.temperature > device.temperature_limit:
@@ -201,7 +201,18 @@ def devices_list():
     devices = db.query(Device.device_uid).all()
     db.close()
 
-    return [d[0] for d in devices]
+    return [
+    {
+        "id": d.device_uid,
+        "limit": d.temperature_limit,
+        "api_key": d.api_key,
+        "online": (
+            d.last_seen is not None and
+            datetime.utcnow() - d.last_seen < timedelta(minutes=2)
+        )
+    }
+    for d in devices
+    ]
 #---------------
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
 def device_detail(device_uid: str):
@@ -655,9 +666,20 @@ async function loadDevices(){
 
     let html = "";
     data.forEach(d=>{
-        html += `<div>
-    📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">${d.id}</a>
-</div>`;
+
+    let status = d.online
+        ? "🟢 ONLINE"
+        : "🔴 OFFLINE";
+
+    html += `
+    <div style="margin-bottom:10px">
+        📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">
+            ${d.id}
+        </a>
+
+        <div>${status}</div>
+    </div>
+    `;
     });
 
     document.getElementById("list").innerHTML = html;
