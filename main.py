@@ -714,7 +714,7 @@ def login(user: str = Form(...), password: str = Form(...)):
         return RedirectResponse("/admin", status_code=302)
 
     return {"error": "wrong credentials"}
-
+"""
 <!DOCTYPE html>
 <html>
 <head>
