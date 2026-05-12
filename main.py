@@ -198,21 +198,21 @@ user_id = Column(Integer, ForeignKey("users.id"))
 @app.get("/api/devices_list")
 def devices_list():
     db = SessionLocal()
-    devices = db.query(Device.device_uid).all()
+
+    devices = db.query(Device).all()
+
+    result = []
+
+    for d in devices:
+        result.append({
+            "id": d.device_uid if d.device_uid else "unknown",
+            "limit": d.temperature_limit if d.temperature_limit else 8,
+            "api_key": d.api_key if d.api_key else "missing"
+        })
+
     db.close()
 
-    return [
-    {
-        "id": d.device_uid,
-        "limit": d.temperature_limit,
-        "api_key": d.api_key,
-        "online": (
-            d.last_seen is not None and
-            datetime.utcnow() - d.last_seen < timedelta(minutes=2)
-        )
-    }
-    for d in devices
-    ]
+    return result
 #---------------
 
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
