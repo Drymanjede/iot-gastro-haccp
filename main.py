@@ -84,10 +84,11 @@ class Measurement(BaseModel):
 @app.post("/api/measurements")
 def receive_data(data: Measurement):
     db = SessionLocal()
+    
+    
+    device = db.query(Device).filter(Device.device_uid == data.device_id).first()
     print("DEVICE:", device)
     print("DATA:", data)
-    device = db.query(Device).filter(Device.device_uid == data.device_id).first()
-
     if not device:
         import secrets
         device = Device(
