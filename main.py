@@ -54,9 +54,9 @@ class Device(Base):
     alert_delay_minutes = Column(Integer, default=10)
     api_key = Column(String, unique=True)
     alert_active_since = Column(DateTime, nullable=True)
-    last_seen = Column(DateTime, nullable=True)
+
     measurements = relationship("MeasurementDB", back_populates="device")
-    
+
 
 class MeasurementDB(Base):
     __tablename__ = "measurements"
@@ -84,11 +84,9 @@ class Measurement(BaseModel):
 @app.post("/api/measurements")
 def receive_data(data: Measurement):
     db = SessionLocal()
-    
-    
+
     device = db.query(Device).filter(Device.device_uid == data.device_id).first()
-    print("DEVICE:", device)
-    print("DATA:", data)
+
     if not device:
         import secrets
         device = Device(
@@ -98,9 +96,7 @@ def receive_data(data: Measurement):
         db.add(device)
         db.commit()
         db.refresh(device)
-        db.add(measurement)
-        
-        print("SAVED")
+
         print("NEW DEVICE:", device.device_uid)
         print("API KEY:", device.api_key)
 
@@ -113,7 +109,7 @@ def receive_data(data: Measurement):
         device_id=device.id
     )
     db.add(measurement)
-    device.last_seen = datetime.utcnow()
+
     alert = False
 
     if data.temperature > device.temperature_limit:
@@ -202,23 +198,11 @@ user_id = Column(Integer, ForeignKey("users.id"))
 @app.get("/api/devices_list")
 def devices_list():
     db = SessionLocal()
-
-    devices = db.query(Device).all()
-
-    result = []
-
-    for d in devices:
-        result.append({
-            "id": d.device_uid if d.device_uid else "unknown",
-            "limit": d.temperature_limit if d.temperature_limit else 8,
-            "api_key": d.api_key if d.api_key else "missing"
-        })
-
+    devices = db.query(Device.device_uid).all()
     db.close()
 
-    return result
+    return [d[0] for d in devices]
 #---------------
-
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
 def device_detail(device_uid: str):
     db = SessionLocal()
@@ -261,24 +245,6 @@ def device_detail(device_uid: str):
     </body>
     </html>
     """
-#=================
-@app.get("/api/device/{device_uid}")
-def get_device(device_uid: str):
-
-    db = SessionLocal()
-
-    device = db.query(Device).filter(
-        Device.device_uid == device_uid
-    ).first()
-
-    db.close()
-
-    if not device:
-        return {"limit": 8}
-
-    return {
-        "limit": device.temperature_limit
-    }
 # ========================
 # PDF REPORT
 # ========================
@@ -423,7 +389,7 @@ def report(device_uid: str):
             "Content-Disposition": f"attachment; filename=HACCP_{device_uid}.pdf"
         }
     )
-   
+
 # ========================
 # DASHBOARD (MOBILE)
 # ========================
@@ -566,20 +532,16 @@ async function loadDevices(){
     let sel = document.getElementById('deviceSelect');
     sel.innerHTML="";
 
-  devices.forEach(d=>{
-    let o=document.createElement("option");
-    o.value=d.id;
-    o.text=d.id;
-    sel.appendChild(o);
+    devices.forEach(d=>{
+        let o=document.createElement("option");
+        o.value=d;
+        o.text=d;
+        sel.appendChild(o);
     });
 
-    if(devices.length) {
-    loadData(devices[0].id);
-    }
-    if (!devices || devices.length === 0) {
-    document.getElementById("deviceSelect").innerHTML = "<option>no devices</option>";
-    return;
+    if(devices.length) loadData(devices[0]);
 }
+
 async function loadData(dev){
 
     let res = await fetch('/api/data/' + dev);
@@ -688,33 +650,17 @@ def admin_panel():
 <script>
 
 async function loadDevices(){
-
     let res = await fetch('/api/devices_list');
-    let devices = await res.json();
+    let data = await res.json();
 
-    console.log(devices);
-
-    let sel = document.getElementById('deviceSelect');
-
-    sel.innerHTML = "";
-
-    devices.forEach(d => {
-
-        let status = d.online
-            ? "🟢"
-            : "🔴";
-
-        let o = document.createElement("option");
-
-        o.value = d.id;
-        o.text = status + " " + d.id;
-
-        sel.appendChild(o);
+    let html = "";
+    data.forEach(d=>{
+        html += `<div>
+    📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">${d.id}</a>
+</div>`;
     });
 
-    if(devices.length > 0){
-        loadData(devices[0].id);
-    }
+    document.getElementById("list").innerHTML = html;
 }
 
 async function addDevice(){
