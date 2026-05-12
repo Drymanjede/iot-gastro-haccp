@@ -203,6 +203,7 @@ def devices_list():
 
     return [d[0] for d in devices]
 #---------------
+
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
 def device_detail(device_uid: str):
     db = SessionLocal()
@@ -547,7 +548,7 @@ async function loadData(dev){
     let res = await fetch('/api/data/' + dev);
     let data = await res.json();
 
-    let limit = (await (await fetch('/api/device/' + dev)).json()).limit;
+    let limit = (await (await fetch('/api/debug/device/' + dev)).json()).limit;
 
     let labels = data.map(d => d.time);
     let temps = data.map(d => d.temperature);
@@ -713,12 +714,7 @@ def login(user: str = Form(...), password: str = Form(...)):
         return RedirectResponse("/admin", status_code=302)
 
     return {"error": "wrong credentials"}
-@app.get("/admin", response_class=HTMLResponse)
-def admin_panel():
-    if "admin" not in sessions:
-        return RedirectResponse("/login")
-    
-    """
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -826,36 +822,9 @@ def clear_all():
 
     return {"deleted_records": deleted}
 #========================================================
-@app.post("/api/register")
-def register_device(data: RegisterRequest):
-    db = SessionLocal()
 
-    # kontrola existence
-    existing = db.query(Device).filter(Device.device_uid == data.device_id).first()
-    if existing:
-        db.close()
-        return {
-            "error": "device already exists",
-            "api_key": existing.api_key
-        }
 
-    # vytvoření nového zařízení
-    new_device = Device(
-        device_uid=data.device_id,
-        temperature_limit=data.temperature_limit,
-        api_key=secrets.token_hex(16)
-    )
-
-    db.add(new_device)
-    db.commit()
-    db.refresh(new_device)
-    db.close()
-
-    return {
-        "device_id": new_device.device_uid,
-        "api_key": new_device.api_key
-    }
-    #=================================================================
+#=================================================================
 @app.get("/")
 def root():
     return {"message": "Server běží 🚀"}
