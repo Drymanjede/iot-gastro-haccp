@@ -214,6 +214,7 @@ def devices_list():
     for d in devices
     ]
 #---------------
+
 @app.get("/admin/device/{device_uid}", response_class=HTMLResponse)
 def device_detail(device_uid: str):
     db = SessionLocal()
@@ -256,6 +257,24 @@ def device_detail(device_uid: str):
     </body>
     </html>
     """
+#=================
+@app.get("/api/device/{device_uid}")
+def get_device(device_uid: str):
+
+    db = SessionLocal()
+
+    device = db.query(Device).filter(
+        Device.device_uid == device_uid
+    ).first()
+
+    db.close()
+
+    if not device:
+        return {"limit": 8}
+
+    return {
+        "limit": device.temperature_limit
+    }
 # ========================
 # PDF REPORT
 # ========================
@@ -669,28 +688,33 @@ def admin_panel():
 <script>
 
 async function loadDevices(){
+
     let res = await fetch('/api/devices_list');
-    let data = await res.json();
+    let devices = await res.json();
 
-    let html = "";
-    data.forEach(d=>{
+    console.log(devices);
 
-    let status = d.online
-        ? "🟢 ONLINE"
-        : "🔴 OFFLINE";
+    let sel = document.getElementById('deviceSelect');
 
-    html += `
-    <div style="margin-bottom:10px">
-        📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">
-            ${d.id}
-        </a>
+    sel.innerHTML = "";
 
-        <div>${status}</div>
-    </div>
-    `;
+    devices.forEach(d => {
+
+        let status = d.online
+            ? "🟢"
+            : "🔴";
+
+        let o = document.createElement("option");
+
+        o.value = d.id;
+        o.text = status + " " + d.id;
+
+        sel.appendChild(o);
     });
 
-    document.getElementById("list").innerHTML = html;
+    if(devices.length > 0){
+        loadData(devices[0].id);
+    }
 }
 
 async function addDevice(){
