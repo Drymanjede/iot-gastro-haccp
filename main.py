@@ -682,7 +682,7 @@ async function loadDevices(){
     let html = "";
     data.forEach(d=>{
         html += `<div>
-    📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">${d.id}</a>
+    📟 <a style="color:#3b82f6" href="/admin/device/${d}">${d}</a>
 </div>`;
     });
 
