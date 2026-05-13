@@ -30,6 +30,10 @@ def login():
 # DB
 # ========================
 DATABASE_URL = "sqlite:///./data.db"
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'data.db')}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
@@ -598,28 +602,27 @@ async function loadData(dev){
 
     let limit = (await (await fetch('/api/debug/device/' + dev)).json()).limit;
 
-    let labels = data.map(d => d.time);
-    let temps = data.map(d => d.temperature);
+    let labels = data.map(d => new Date(d.time).toLocaleString());    let temps = data.map(d => d.temperature);
     let avgTemps = [];
-let alarms = [];
+    let alarms = [];
 
-for(let i=0;i<temps.length;i++){
+    for(let i=0;i<temps.length;i++){
 
-    let subset = temps.slice(
-        Math.max(0, i-5),
-        i+1
-    );
+        let subset = temps.slice(
+            Math.max(0, i-5),
+            i+1
+        );
 
-    let avg =
-        subset.reduce((a,b)=>a+b,0)
-        / subset.length;
+        let avg =
+            subset.reduce((a,b)=>a+b,0)
+            / subset.length;
 
-    avgTemps.push(avg);
+        avgTemps.push(avg);
 
-    alarms.push(
-        temps[i] > limit ? 1 : 0
-    );
-}
+        alarms.push(
+            temps[i] > limit ? 1 : 0
+        );
+    }
     let last = temps[temps.length - 1] || 0;
     // =====================
 // Statistiky
