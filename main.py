@@ -619,77 +619,7 @@ def admin_panel():
     if "admin" not in sessions:
         return RedirectResponse("/login")
 
-    return """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>IoT Admin</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: Arial; background:#0b1220; color:white; padding:20px; }
-        input, button { padding:10px; margin:5px; width:100%; }
-        .card { background:#111a2e; padding:15px; margin:10px 0; border-radius:10px; }
-        button { background:#2563eb; color:white; border:none; border-radius:8px; }
-    </style>
-</head>
-<body>
-
-<h2>📡 IoT Admin Panel</h2>
-
-<div class="card">
-    <h3>➕ Přidat zařízení</h3>
-    <input id="device" placeholder="device_id">
-    <input id="limit" placeholder="temperature limit" value="8">
-    <button onclick="addDevice()">Přidat</button>
-</div>
-
-<div class="card">
-    <h3>📋 Zařízení</h3>
-    <div id="list"></div>
-</div>
-
-<script>
-
-async function loadDevices(){
-    let res = await fetch('/api/devices_list');
-    let data = await res.json();
-
-    let html = "";
-    data.forEach(d=>{
-        html += `<div>
-    📟 <a style="color:#3b82f6" href="/admin/device/${d.id}">${d.id}</a>
-</div>`;
-    });
-
-    document.getElementById("list").innerHTML = html;
-}
-
-async function addDevice(){
-    let id = document.getElementById("device").value;
-    let limit = document.getElementById("limit").value;
-
-    let res = await fetch("/api/register", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-            device_id: id,
-            temperature_limit: parseFloat(limit)
-        })
-    });
-
-    let data = await res.json();
-    alert("API KEY: " + data.api_key);
-
-    loadDevices();
-}
-
-loadDevices();
-
-</script>
-
-</body>
-</html>
-"""
+    return 
 # ========================
 from fastapi.responses import HTMLResponse
 @app.get("/login", response_class=HTMLResponse)
