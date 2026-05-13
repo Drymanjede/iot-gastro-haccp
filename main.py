@@ -678,7 +678,6 @@ document.getElementById("deviceLimit").innerText =
 
     if(chart) chart.destroy();
 
-    if(chart) chart.destroy();
 if(avgChart) avgChart.destroy();
 if(alarmChart) alarmChart.destroy();
 
@@ -1032,8 +1031,7 @@ async function loadDevices(){
     document.getElementById("list").innerHTML = html;
 }
 
-    document.getElementById("list").innerHTML = html;
-}
+
 
 async function addDevice(){
 
