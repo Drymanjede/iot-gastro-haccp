@@ -790,10 +790,12 @@ html += `
     <button onclick="saveDevice('${d}')">
         💾 Uložit změny
     </button>
-
+    <button onclick="deleteDevice('${d}')">
+    🗑️ Smazat zařízení
+    </button>
     <br><br>
 
-    <a href="/admin/device/${d}">
+    <a href="/admin/device/${encodeURIComponent(d)}">
         Detail zařízení
     </a>
 
@@ -869,8 +871,27 @@ async function saveDevice(oldId){
         alert(data.error);
     }
 }
-loadDevices();
+async function deleteDevice(id){
 
+    if(!confirm("Opravdu smazat zařízení?")){
+        return;
+    }
+
+    let res = await fetch(
+        '/api/delete-device/' + id
+    );
+
+    let data = await res.json();
+
+    if(data.status === "deleted"){
+        alert("Zařízení smazáno");
+        loadDevices();
+    } else {
+        alert(data.error);
+    }
+}
+loadDevices();
+setInterval(loadDevices, 20000);
 </script>
 
 </body>
@@ -917,6 +938,33 @@ def update_device(device_uid: str, data: UpdateDeviceRequest):
 
     return {"status": "updated"}
 #======================================
+# =========================================================
+# DELETE DEVICE
+# =========================================================
+
+@app.get("/api/delete-device/{device_uid}")
+def delete_device(device_uid: str):
+
+    db = SessionLocal()
+
+    device = db.query(Device).filter(
+        Device.device_uid == device_uid
+    ).first()
+
+    if not device:
+        db.close()
+        return {"error": "device not found"}
+
+    db.query(MeasurementDB).filter(
+        MeasurementDB.device_id == device.id
+    ).delete()
+
+    db.delete(device)
+
+    db.commit()
+    db.close()
+
+    return {"status": "deleted"}
 @app.get("/api/debug/device/{device_uid}")
 def debug_device(device_uid: str):
     db = SessionLocal()
@@ -941,11 +989,7 @@ def debug_device(device_uid: str):
     #==================
 
 #====================================
-import secrets
 
-class RegisterRequest(BaseModel):
-    device_id: str
-    temperature_limit: float = 8.0
 #======================================================
 @app.get("/api/clear-all")
 def clear_all():
