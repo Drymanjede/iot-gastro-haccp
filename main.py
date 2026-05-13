@@ -759,7 +759,28 @@ def clear_all():
 
     return {"deleted_records": deleted}
 #========================================================
+@app.get("/api/set-key/{device_uid}/{new_key}")
+def set_key(device_uid: str, new_key: str):
+    db = SessionLocal()
 
+    device = db.query(Device).filter(
+        Device.device_uid == device_uid
+    ).first()
+
+    if not device:
+        db.close()
+        return {"error": "device not found"}
+
+    device.api_key = new_key
+
+    db.commit()
+    db.close()
+
+    return {
+        "status": "updated",
+        "device": device_uid,
+        "new_key": new_key
+    }
 
 #=================================================================
 @app.get("/")
