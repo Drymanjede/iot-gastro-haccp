@@ -88,11 +88,9 @@ def receive_data(data: Measurement):
     device = db.query(Device).filter(Device.device_uid == data.device_id).first()
 
     if not device:
-        import secrets
-        device = Device(
-            device_uid=data.device_id,
-            api_key=secrets.token_hex(16)
-        )
+        db.close()
+        return {"error": "device not registered"}
+        
         db.add(device)
         db.commit()
         db.refresh(device)
