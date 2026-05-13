@@ -567,20 +567,24 @@ let dayChart;
 let monthChart;
 
 async function loadDevices(){
-    let res = await fetch('/api/devices_list');
-    let devices = await res.json();
+    try {
+        let res = await fetch('/api/devices_list');
+        let data = await res.json();
 
-    let sel = document.getElementById('deviceSelect');
-    sel.innerHTML="";
+        let html = "";
 
-    devices.forEach(d=>{
-        let o=document.createElement("option");
-        o.value=d;
-        o.text=d;
-        sel.appendChild(o);
-    });
+        for (const d of data) {
+            let debug = await fetch('/api/debug/device/' + d);
+            let info = await debug.json();
 
-    if(devices.length) loadData(devices[0]);
+            html += `...`;
+        }
+
+        document.getElementById("list").innerHTML = html;
+
+    } catch(e){
+        console.error(e);
+    }
 }
 
 async function loadData(dev){
@@ -1029,25 +1033,36 @@ async function addDevice(){
         document.getElementById("limit").value
     );
 
-    let res = await fetch("/api/register", {
+    try {
+        let res = await fetch("/api/register", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body: JSON.stringify({
+                device_id: id,
+                temperature_limit: limit
+            })
+        });
 
-        method:"POST",
+        let data = await res.json();
 
-        headers:{
-            "Content-Type":"application/json"
-        },
+        console.log("REGISTER RESPONSE:", data);
 
-        body: JSON.stringify({
-            device_id: id,
-            temperature_limit: limit
-        })
-    });
+        if(!res.ok){
+            alert("ERROR: " + JSON.stringify(data));
+            return;
+        }
 
-    let data = await res.json();
+        alert("API KEY: " + data.api_key);
 
-    alert("API KEY: " + data.api_key);
+        loadDevices();
 
-    loadDevices();
+    } catch(err){
+        console.error(err);
+        alert("Network error");
+    }
+}
 }
 async function saveDevice(oldId){
 
@@ -1122,7 +1137,10 @@ class UpdateDeviceRequest(BaseModel):
     new_device_id: str
     temperature_limit: float
 
-
+@app.post("/api/register")
+def register_device(data: RegisterRequest):
+    print("REGISTER CALLED:", data)
+    
 @app.post("/api/update-device/{device_uid}")
 def update_device(device_uid: str, data: UpdateDeviceRequest):
 
