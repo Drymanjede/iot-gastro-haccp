@@ -497,38 +497,74 @@ canvas{
 
 <div class="grid">
 
-<div class="card">
-    <h3>Zařízení</h3>
-    <select id="deviceSelect"></select>
+<!-- LEVÝ SLOUPEC -->
+<div>
 
-    <div class="temp" id="temp">-- °C</div>
-    <div class="status" id="status">Načítání...</div>
+    <div class="card">
+        <h3>Zařízení</h3>
 
-    <button onclick="downloadPDF()">📄 Report (PDF)</button>
+        <select id="deviceSelect"></select>
+
+        <div class="temp" id="temp">-- °C</div>
+        <div class="status" id="status">Načítání...</div>
+
+        <button onclick="downloadPDF()">
+            📄 Report (PDF)
+        </button>
+    </div>
+
+    <div class="card">
+        <h3>📈 Statistiky</h3>
+
+        <p>🌡️ Min: <span id="minTemp">-</span> °C</p>
+        <p>🌡️ Max: <span id="maxTemp">-</span> °C</p>
+        <p>📊 Průměr: <span id="avgTemp">-</span> °C</p>
+        <p>📦 Počet měření: <span id="countTemp">-</span></p>
+    </div>
+
+    <div class="card">
+        <h3>🚨 Alarmy</h3>
+
+        <p>Překročení limitu:
+            <span id="alertCount">0</span>
+        </p>
+
+        <p>Limit:
+            <span id="deviceLimit">-</span> °C
+        </p>
+    </div>
+
 </div>
 
-<div class="card">
-    <h3>Graf vývoje</h3>
-    <canvas id="chart"></canvas>
-    <br><br>
+<!-- PRAVÝ SLOUPEC -->
+<div>
 
-<h3>📈 Průměrná teplota</h3>
-<canvas id="avgChart"></canvas>
+    <div class="card">
+        <h3>📊 Celkový graf</h3>
+        <canvas id="chart"></canvas>
+    </div>
 
-<br><br>
+    <div class="card">
+        <h3>📅 Dnešní teploty</h3>
+        <canvas id="dayChart"></canvas>
+    </div>
 
-<h3>🚨 Alarmy</h3>
-<canvas id="alarmChart"></canvas>
+    <div class="card">
+        <h3>🗓️ Měsíční přehled</h3>
+        <canvas id="monthChart"></canvas>
+    </div>
+
 </div>
 
 </div>
-
 </div>
 
 <script>
 let chart;
 let avgChart;
 let alarmChart;
+let dayChart;
+let monthChart;
 
 async function loadDevices(){
     let res = await fetch('/api/devices_list');
@@ -577,6 +613,40 @@ for(let i=0;i<temps.length;i++){
     );
 }
     let last = temps[temps.length - 1] || 0;
+    // =====================
+// Statistiky
+// =====================
+
+let min = Math.min(...temps);
+let max = Math.max(...temps);
+
+let avg =
+    temps.reduce((a,b)=>a+b,0) / temps.length;
+
+document.getElementById("minTemp").innerText =
+    min.toFixed(1);
+
+document.getElementById("maxTemp").innerText =
+    max.toFixed(1);
+
+document.getElementById("avgTemp").innerText =
+    avg.toFixed(1);
+
+document.getElementById("countTemp").innerText =
+    temps.length;
+
+// =====================
+// Alarmy
+// =====================
+
+let alertCount =
+    temps.filter(t => t > limit).length;
+
+document.getElementById("alertCount").innerText =
+    alertCount;
+
+document.getElementById("deviceLimit").innerText =
+    limit;
 
     document.getElementById("temp").innerText = last.toFixed(1) + " °C";
 
@@ -675,12 +745,97 @@ setInterval(()=>{
     let dev = document.getElementById('deviceSelect').value;
     if(dev) loadData(dev);
 },10000);
+// =====================
+// DNEŠNÍ GRAF
+// =====================
 
+let today = new Date().toISOString().slice(0,10);
+
+let dayData = data.filter(d =>
+    d.time.startsWith(today)
+);
+
+let dayLabels = dayData.map(d => d.time.slice(11,16));
+let dayTemps = dayData.map(d => d.temperature);
+
+if(dayChart) dayChart.destroy();
+
+dayChart = new Chart(
+    document.getElementById('dayChart'),
+    {
+        type:'line',
+
+        data:{
+            labels:dayLabels,
+
+            datasets:[{
+                label:'Dnes',
+                data:dayTemps,
+                borderColor:'#22c55e',
+                tension:0.3
+            }]
+        },
+
+        options:{
+            responsive:true
+        }
+    }
+);
+
+// =====================
+// MĚSÍČNÍ GRAF
+// =====================
+
+let grouped = {};
+
+data.forEach(d => {
+
+    let day = d.time.slice(0,10);
+
+    if(!grouped[day]){
+        grouped[day] = [];
+    }
+
+    grouped[day].push(d.temperature);
+});
+
+let monthLabels = Object.keys(grouped);
+
+let monthTemps = monthLabels.map(day => {
+
+    let arr = grouped[day];
+
+    return arr.reduce((a,b)=>a+b,0) / arr.length;
+});
+
+if(monthChart) monthChart.destroy();
+
+monthChart = new Chart(
+    document.getElementById('monthChart'),
+    {
+        type:'bar',
+
+        data:{
+            labels:monthLabels,
+
+            datasets:[{
+                label:'Denní průměr',
+                data:monthTemps,
+                backgroundColor:'#f59e0b'
+            }]
+        },
+
+        options:{
+            responsive:true
+        }
+    }
+);
 </script>
 
 </body>
 </html>
 """
+
 # ========================
 # ========================
 # ========================
