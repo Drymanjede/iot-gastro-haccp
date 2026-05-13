@@ -510,6 +510,15 @@ canvas{
 <div class="card">
     <h3>Graf vývoje</h3>
     <canvas id="chart"></canvas>
+    <br><br>
+
+<h3>📈 Průměrná teplota</h3>
+<canvas id="avgChart"></canvas>
+
+<br><br>
+
+<h3>🚨 Alarmy</h3>
+<canvas id="alarmChart"></canvas>
 </div>
 
 </div>
@@ -518,6 +527,8 @@ canvas{
 
 <script>
 let chart;
+let avgChart;
+let alarmChart;
 
 async function loadDevices(){
     let res = await fetch('/api/devices_list');
@@ -545,7 +556,26 @@ async function loadData(dev){
 
     let labels = data.map(d => d.time);
     let temps = data.map(d => d.temperature);
+    let avgTemps = [];
+let alarms = [];
 
+for(let i=0;i<temps.length;i++){
+
+    let subset = temps.slice(
+        Math.max(0, i-5),
+        i+1
+    );
+
+    let avg =
+        subset.reduce((a,b)=>a+b,0)
+        / subset.length;
+
+    avgTemps.push(avg);
+
+    alarms.push(
+        temps[i] > limit ? 1 : 0
+    );
+}
     let last = temps[temps.length - 1] || 0;
 
     document.getElementById("temp").innerText = last.toFixed(1) + " °C";
@@ -564,25 +594,71 @@ async function loadData(dev){
 
     if(chart) chart.destroy();
 
-    chart = new Chart(document.getElementById('chart'),{
+    if(chart) chart.destroy();
+if(avgChart) avgChart.destroy();
+if(alarmChart) alarmChart.destroy();
+
+chart = new Chart(document.getElementById('chart'),{
+    type:'line',
+    data:{
+        labels:labels,
+        datasets:[{
+            label:'Teplota',
+            data:temps,
+            borderColor:'#3b82f6',
+            tension:0.3
+        }]
+    },
+    options:{
+        responsive:true
+    }
+});
+
+avgChart = new Chart(
+    document.getElementById('avgChart'),
+    {
         type:'line',
+
         data:{
             labels:labels,
+
             datasets:[{
-                label:'Teplota',
-                data:temps,
-                borderColor:'#3b82f6',
+                label:'Průměr',
+
+                data:avgTemps,
+
+                borderColor:'#22c55e',
+
                 tension:0.3
             }]
         },
+
         options:{
-            responsive:true,
-            plugins:{
-                legend:{display:false}
-            }
+            responsive:true
         }
-    });
-}
+    }
+);
+
+alarmChart = new Chart(
+    document.getElementById('alarmChart'),
+    {
+        type:'bar',
+
+        data:{
+            labels:labels,
+
+            datasets:[{
+                label:'Alarm',
+
+                data:alarms
+            }]
+        },
+
+        options:{
+            responsive:true
+        }
+    }
+);
 
 function downloadPDF(){
     let dev = document.getElementById('deviceSelect').value;
