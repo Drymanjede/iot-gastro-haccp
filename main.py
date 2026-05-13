@@ -525,7 +525,15 @@ canvas{
         <p>📊 Průměr: <span id="avgTemp">-</span> °C</p>
         <p>📦 Počet měření: <span id="countTemp">-</span></p>
     </div>
+                <div class="card">
+            <h3>📈 Průměr</h3>
+            <canvas id="avgChart"></canvas>
+        </div>
 
+        <div class="card">
+            <h3>🚨 Alarmy</h3>
+            <canvas id="alarmChart"></canvas>
+        </div>
     <div class="card">
         <h3>🚨 Alarmy</h3>
 
@@ -557,6 +565,7 @@ canvas{
         <h3>🗓️ Měsíční přehled</h3>
         <canvas id="monthChart"></canvas>
     </div>
+    
 
 </div>
 
@@ -840,6 +849,7 @@ monthChart = new Chart(
         }
     }
 );
+}
 </script>
 
 </body>
