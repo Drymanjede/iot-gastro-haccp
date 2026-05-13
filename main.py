@@ -744,7 +744,7 @@ loadDevices();
 setInterval(()=>{
     let dev = document.getElementById('deviceSelect').value;
     if(dev) loadData(dev);
-},10000);
+},5000);
 // =====================
 // DNEŠNÍ GRAF
 // =====================
@@ -990,51 +990,32 @@ def admin_panel():
 async function loadDevices(){
 
     let res = await fetch('/api/devices_list');
-
     let data = await res.json();
 
     let html = "";
 
     for (const d of data) {
 
-    let debug = await fetch('/api/debug/device/' + d);
+        let debug = await fetch('/api/debug/device/' + d);
+        let info = await debug.json();
 
-    let info = await debug.json();
+        html += `
+        <div class="card">
+            <h3>📟 ${d}</h3>
 
-    html += `
-<div class="card">
+            <input id="name_${d}" value="${d}">
+            <input id="limit_${d}" value="${info.limit}" type="number" step="0.1">
 
-    <h3>📟 ${d}</h3>
+            <button onclick="saveDevice('${d}')">💾 Uložit změny</button>
+            <button onclick="deleteDevice('${d}')">🗑️ Smazat</button>
 
-    <input
-        id="name_${d}"
-        value="${d}"
-        placeholder="device name"
-    >
+            <br><br>
+            <a href="/admin/device/${encodeURIComponent(d)}">Detail</a>
+        </div>
+        `;
+    }
 
-    <input
-        id="limit_${d}"
-        value="${info.limit}"
-        type="number"
-        step="0.1"
-    >
-
-    <button onclick="saveDevice('${d}')">
-        💾 Uložit změny
-    </button>
-
-    <button onclick="deleteDevice('${d}')">
-        🗑️ Smazat zařízení
-    </button>
-
-    <br><br>
-
-    <a href="/admin/device/${encodeURIComponent(d)}">
-        Detail zařízení
-    </a>
-
-</div>
-`;
+    document.getElementById("list").innerHTML = html;
 }
 
     document.getElementById("list").innerHTML = html;
