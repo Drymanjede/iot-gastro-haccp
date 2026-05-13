@@ -192,7 +192,7 @@ def get_data(device_uid: str):
 # ========================
 # DEVICES
 # ========================
-user_id = Column(Integer, ForeignKey("users.id"))
+
 @app.get("/api/devices_list")
 def devices_list():
     db = SessionLocal()
@@ -612,31 +612,217 @@ setInterval(()=>{
 """
 # ========================
 # ========================
-from fastapi.responses import HTMLResponse
+# ========================
+# LOGIN PAGE
+# ========================
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page():
-    return
-# ROOT
-@app.get("/admin", response_class=HTMLResponse)
-def admin_panel():
-    if "admin" not in sessions:
-        return RedirectResponse("/login")
-
-    return  """
-
-
+    return """
     <html>
     <body style="font-family:Arial;background:#0b1220;color:white;padding:20px">
+
         <h2>🔐 Login</h2>
 
         <form method="post" action="/login">
-            <input name="user" placeholder="user"><br><br>
-            <input name="password" type="password" placeholder="password"><br><br>
-            <button type="submit">Login</button>
+
+            <input name="user" placeholder="user">
+            <br><br>
+
+            <input
+                name="password"
+                type="password"
+                placeholder="password"
+            >
+            <br><br>
+
+            <button type="submit">
+                Login
+            </button>
+
         </form>
+
     </body>
     </html>
     """
+
+
+# ========================
+# LOGIN ACTION
+# ========================
+
+@app.post("/login")
+def login(user: str = Form(...), password: str = Form(...)):
+
+    if user == SECRET_USER and password == SECRET_PASS:
+        sessions.add(user)
+
+        return RedirectResponse(
+            "/admin",
+            status_code=302
+        )
+
+    return {"error": "wrong credentials"}
+
+
+# ========================
+# ADMIN PANEL
+# ========================
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_panel():
+
+    if "admin" not in sessions:
+        return RedirectResponse("/login")
+
+    return """
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>IoT Admin</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <style>
+
+        body{
+            font-family:Arial;
+            background:#0b1220;
+            color:white;
+            padding:20px;
+        }
+
+        input, button{
+            padding:10px;
+            margin:5px;
+            width:100%;
+        }
+
+        .card{
+            background:#111a2e;
+            padding:15px;
+            margin:10px 0;
+            border-radius:10px;
+        }
+
+        button{
+            background:#2563eb;
+            color:white;
+            border:none;
+            border-radius:8px;
+        }
+
+        a{
+            color:#3b82f6;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h2>📡 IoT Admin Panel</h2>
+
+<div class="card">
+
+    <h3>➕ Přidat zařízení</h3>
+
+    <input
+        id="device"
+        placeholder="device_id"
+    >
+
+    <input
+        id="limit"
+        placeholder="temperature limit"
+        value="8"
+    >
+
+    <button onclick="addDevice()">
+        Přidat
+    </button>
+
+</div>
+
+<div class="card">
+
+    <h3>📋 Zařízení</h3>
+
+    <div id="list"></div>
+
+</div>
+
+<script>
+
+async function loadDevices(){
+
+    let res = await fetch('/api/devices_list');
+
+    let data = await res.json();
+
+    let html = "";
+
+    data.forEach(d => {
+
+        html += `
+        <div style="margin:10px 0">
+
+            📟
+
+            <a href="/admin/device/${d}">
+                ${d}
+            </a>
+
+        </div>
+        `;
+    });
+
+    document.getElementById("list").innerHTML = html;
+}
+
+async function addDevice(){
+
+    let id = document.getElementById("device").value;
+
+    let limit = parseFloat(
+        document.getElementById("limit").value
+    );
+
+    let res = await fetch("/api/register", {
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body: JSON.stringify({
+            device_id: id,
+            temperature_limit: limit
+        })
+    });
+
+    let data = await res.json();
+
+    alert("API KEY: " + data.api_key);
+
+    loadDevices();
+}
+
+loadDevices();
+
+</script>
+
+</body>
+</html>
+"""
 @app.post("/login")
 def login(user: str = Form(...), password: str = Form(...)):
     if user == SECRET_USER and password == SECRET_PASS:
