@@ -764,12 +764,13 @@ async function loadDevices(){
 
     let html = "";
 
-    data.forEach(d => {
+    for (const d of data) {
 
-        let debug = await fetch('/api/debug/device/' + d);
-let info = await debug.json();
+    let debug = await fetch('/api/debug/device/' + d);
 
-html += `
+    let info = await debug.json();
+
+    html += `
 <div class="card">
 
     <h3>📟 ${d}</h3>
@@ -790,9 +791,11 @@ html += `
     <button onclick="saveDevice('${d}')">
         💾 Uložit změny
     </button>
+
     <button onclick="deleteDevice('${d}')">
-    🗑️ Smazat zařízení
+        🗑️ Smazat zařízení
     </button>
+
     <br><br>
 
     <a href="/admin/device/${encodeURIComponent(d)}">
@@ -801,7 +804,7 @@ html += `
 
 </div>
 `;
-    });
+}
 
     document.getElementById("list").innerHTML = html;
 }
