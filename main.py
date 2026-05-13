@@ -567,24 +567,34 @@ let dayChart;
 let monthChart;
 
 async function loadDevices(){
-    try {
-        let res = await fetch('/api/devices_list');
-        let data = await res.json();
 
-        let html = "";
+    let res = await fetch('/api/devices_list');
+    let data = await res.json();
 
-        for (const d of data) {
-            let debug = await fetch('/api/debug/device/' + d);
-            let info = await debug.json();
+    let html = "";
 
-            html += `...`;
-        }
+    for (const d of data) {
 
-        document.getElementById("list").innerHTML = html;
+        let debug = await fetch('/api/debug/device/' + d);
+        let info = await debug.json();
 
-    } catch(e){
-        console.error(e);
+        html += `
+        <div class="card">
+            <h3>📟 ${d}</h3>
+
+            <input id="name_${d}" value="${d}">
+            <input id="limit_${d}" value="${info.limit}" type="number" step="0.1">
+
+            <button onclick="saveDevice('${d}')">💾 Uložit změny</button>
+            <button onclick="deleteDevice('${d}')">🗑️ Smazat</button>
+
+            <br><br>
+            <a href="/admin/device/${encodeURIComponent(d)}">Detail</a>
+        </div>
+        `;
     }
+
+    document.getElementById("list").innerHTML = html;
 }
 
 async function loadData(dev){
@@ -1063,7 +1073,7 @@ async function addDevice(){
         alert("Network error");
     }
 }
-}
+
 async function saveDevice(oldId){
 
     let newId = document.getElementById(
@@ -1137,9 +1147,7 @@ class UpdateDeviceRequest(BaseModel):
     new_device_id: str
     temperature_limit: float
 
-@app.post("/api/register")
-def register_device(data: RegisterRequest):
-    print("REGISTER CALLED:", data)
+
     
 @app.post("/api/update-device/{device_uid}")
 def update_device(device_uid: str, data: UpdateDeviceRequest):
