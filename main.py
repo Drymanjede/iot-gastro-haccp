@@ -611,7 +611,15 @@ async function loadData(dev){
 
     let limit = (await (await fetch('/api/debug/device/' + dev)).json()).limit;
 
-    let labels = data.map(d => new Date(d.time).toLocaleString());    let temps = data.map(d => d.temperature);
+    let labels = data.map(d =>
+    new Date(d.time).toLocaleString('cs-CZ', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+);   
+    let temps = data.map(d => parseFloat(d.temperature));
     let avgTemps = [];
     let alarms = [];
 
