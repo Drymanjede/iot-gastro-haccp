@@ -771,17 +771,39 @@ async function loadDevices(){
 
     data.forEach(d => {
 
-        html += `
-        <div style="margin:10px 0">
+        let debug = await fetch('/api/debug/device/' + d);
+let info = await debug.json();
 
-            📟
+html += `
+<div class="card">
 
-            <a href="/admin/device/${d}">
-                ${d}
-            </a>
+    <h3>📟 ${d}</h3>
 
-        </div>
-        `;
+    <input
+        id="name_${d}"
+        value="${d}"
+        placeholder="device name"
+    >
+
+    <input
+        id="limit_${d}"
+        value="${info.limit}"
+        type="number"
+        step="0.1"
+    >
+
+    <button onclick="saveDevice('${d}')">
+        💾 Uložit změny
+    </button>
+
+    <br><br>
+
+    <a href="/admin/device/${d}">
+        Detail zařízení
+    </a>
+
+</div>
+`;
     });
 
     document.getElementById("list").innerHTML = html;
@@ -893,7 +915,43 @@ async function addDevice(){
 
     loadDevices();
 }
+async function saveDevice(oldId){
 
+    let newName = document.getElementById(
+        'name_' + oldId
+    ).value;
+
+    let limit = parseFloat(
+        document.getElementById(
+            'limit_' + oldId
+        ).value
+    );
+
+    let res = await fetch(
+        '/api/update-device/' + oldId,
+        {
+            method:'POST',
+
+            headers:{
+                'Content-Type':'application/json'
+            },
+
+            body: JSON.stringify({
+                new_device_id:newName,
+                temperature_limit:limit
+            })
+        }
+    );
+
+    let data = await res.json();
+
+    if(data.error){
+        alert(data.error);
+    } else {
+        alert("Uloženo");
+        loadDevices();
+    }
+}
 loadDevices();
 
 </script>
@@ -902,7 +960,44 @@ loadDevices();
 </html>
 """
 #===============================================
+# =========================================================
+# UPDATE DEVICE
+# =========================================================
 
+class UpdateDeviceRequest(BaseModel):
+    new_device_id: str
+    temperature_limit: float
+
+
+@app.post("/api/update-device/{device_uid}")
+def update_device(device_uid: str, data: UpdateDeviceRequest):
+
+    db = SessionLocal()
+
+    device = db.query(Device).filter(
+        Device.device_uid == device_uid
+    ).first()
+
+    if not device:
+        db.close()
+        return {"error": "device not found"}
+
+    # kontrola duplicity názvu
+    existing = db.query(Device).filter(
+        Device.device_uid == data.new_device_id
+    ).first()
+
+    if existing and existing.id != device.id:
+        db.close()
+        return {"error": "device name already exists"}
+
+    device.device_uid = data.new_device_id
+    device.temperature_limit = data.temperature_limit
+
+    db.commit()
+    db.close()
+
+    return {"status": "updated"}
 #======================================
 @app.get("/api/debug/device/{device_uid}")
 def debug_device(device_uid: str):
