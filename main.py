@@ -611,18 +611,20 @@ setInterval(()=>{
 </html>
 """
 # ========================
+# ========================
+from fastapi.responses import HTMLResponse
+@app.get("/login", response_class=HTMLResponse)
+def login_page():
+    return
 # ROOT
 @app.get("/admin", response_class=HTMLResponse)
 def admin_panel():
     if "admin" not in sessions:
         return RedirectResponse("/login")
 
-    return 
-# ========================
-from fastapi.responses import HTMLResponse
-@app.get("/login", response_class=HTMLResponse)
-def login_page():
-    return """
+    return  """
+
+
     <html>
     <body style="font-family:Arial;background:#0b1220;color:white;padding:20px">
         <h2>🔐 Login</h2>
