@@ -525,15 +525,7 @@ canvas{
         <p>📊 Průměr: <span id="avgTemp">-</span> °C</p>
         <p>📦 Počet měření: <span id="countTemp">-</span></p>
     </div>
-                <div class="card">
-            <h3>📈 Průměr</h3>
-            <canvas id="avgChart"></canvas>
-        </div>
-
-        <div class="card">
-            <h3>🚨 Alarmy</h3>
-            <canvas id="alarmChart"></canvas>
-        </div>
+                
     <div class="card">
         <h3>🚨 Alarmy</h3>
 
@@ -545,7 +537,15 @@ canvas{
             <span id="deviceLimit">-</span> °C
         </p>
     </div>
+    <div class="card">
+            <h3>📈 Průměr</h3>
+            <canvas id="avgChart"></canvas>
+        </div>
 
+        <div class="card">
+            <h3>🚨 Alarmy</h3>
+            <canvas id="alarmChart"></canvas>
+        </div>
 </div>
 
 <!-- PRAVÝ SLOUPEC -->
@@ -683,9 +683,15 @@ document.getElementById("deviceLimit").innerText =
     }
 
     if(chart) chart.destroy();
+    if(avgChart) avgChart.destroy();
+    if(alarmChart) alarmChart.destroy();
+    if(dayChart) dayChart.destroy();
+    if(monthChart) monthChart.destroy();
 
-if(avgChart) avgChart.destroy();
-if(alarmChart) alarmChart.destroy();
+    
+
+
+
 
 chart = new Chart(document.getElementById('chart'),{
     type:'line',
@@ -749,21 +755,7 @@ alarmChart = new Chart(
     }
 );
 
-function downloadPDF(){
-    let dev = document.getElementById('deviceSelect').value;
-    window.open('/api/report/' + dev);
-}
 
-document.getElementById('deviceSelect').addEventListener('change',e=>{
-    loadData(e.target.value);
-});
-
-loadDevices();
-
-setInterval(()=>{
-    let dev = document.getElementById('deviceSelect').value;
-    if(dev) loadData(dev);
-},5000);
 // =====================
 // DNEŠNÍ GRAF
 // =====================
@@ -850,6 +842,21 @@ monthChart = new Chart(
     }
 );
 }
+function downloadPDF(){
+    let dev = document.getElementById('deviceSelect').value;
+    window.open('/api/report/' + dev);
+}
+
+document.getElementById('deviceSelect').addEventListener('change',e=>{
+    loadData(e.target.value);
+});
+
+loadDevices();
+
+setInterval(()=>{
+    let dev = document.getElementById('deviceSelect').value;
+    if(dev) loadData(dev);
+},5000);
 </script>
 
 </body>
